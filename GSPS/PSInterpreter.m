@@ -138,21 +138,18 @@
       if (_transform != nil)
         {
           NSAffineTransformStruct s = [_transform transformStruct];
-          s.tX = 0.0;
-          s.tY = 0.0;
-
           NSAffineTransform *textTransform = [NSAffineTransform transform];
-          [textTransform translateXBy:_point.x yBy:_point.y];
-
-          NSAffineTransform *linearTransform = [NSAffineTransform transform];
-          [linearTransform setTransformStruct:s];
-          [textTransform appendTransform:linearTransform];
+          s.tX = _point.x;
+          s.tY = _point.y;
+          [textTransform setTransformStruct:s];
           [textTransform concat];
 
+          [(_strokeColor ?: [NSColor blackColor]) set];
           [_text drawAtPoint:NSZeroPoint withAttributes:attrs];
         }
       else
         {
+          [(_strokeColor ?: [NSColor blackColor]) set];
           [_text drawAtPoint:_point withAttributes:attrs];
         }
     }
@@ -476,12 +473,12 @@
 {
   if ((self = [super init]))
     {
-      _operandStack = [NSMutableArray array];
-      _dictionaryStack = [NSMutableArray arrayWithObject:[NSMutableDictionary dictionary]];
-      _graphicsStack = [NSMutableArray array];
-      _graphicsState = [[PSGraphicsState alloc] init];
-      _clipStack = [NSMutableArray array];
-      _renderOperations = [NSMutableArray array];
+      self.operandStack = [NSMutableArray array];
+      self.dictionaryStack = [NSMutableArray arrayWithObject:[NSMutableDictionary dictionary]];
+      self.graphicsStack = [NSMutableArray array];
+      self.graphicsState = [[PSGraphicsState alloc] init];
+      self.clipStack = [NSMutableArray array];
+      self.renderOperations = [NSMutableArray array];
       _exitFlag = NO;
     }
   return self;

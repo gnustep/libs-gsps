@@ -30,13 +30,13 @@
     if (self = [super init])
       {
 	_currentPoint = NSZeroPoint;
-	_path = [NSBezierPath bezierPath];
+	self.path = [NSBezierPath bezierPath];
 	_lineWidth = 1.0;
-	_strokeColor = [NSColor blackColor];
-	_fillColor = [NSColor blackColor];
-	_font = [NSFont systemFontOfSize:12];
-	_transform = [NSAffineTransform transform];
-	_clipPath = nil;
+	self.strokeColor = [NSColor blackColor];
+	self.fillColor = [NSColor blackColor];
+	self.font = [NSFont systemFontOfSize:12];
+	self.transform = [NSAffineTransform transform];
+	self.clipPath = nil;
       }
 
     return self;
