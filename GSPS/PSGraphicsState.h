@@ -28,7 +28,7 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 
-@interface PSGraphicsState : NSObject
+@interface PSGraphicsState : NSObject <NSCopying>
 
 @property (nonatomic) NSPoint currentPoint;
 @property (nonatomic, strong) NSBezierPath *path;

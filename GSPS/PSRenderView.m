@@ -22,11 +22,14 @@
   Boston, MA 02110-1301, USA.
 */
 
-#ifndef GSPS_H
-#define GSPS_H
+#import "PSRenderView.h"
+#import "PSInterpreter.h"
 
-#import <GSPS/PSInterpreter.h>
-#import <GSPS/PSGraphicsState.h>
-#import <GSPS/PSRenderView.h>
+@implementation PSRenderView
 
-#endif
+- (void)drawRect:(NSRect)dirtyRect {
+    [super drawRect:dirtyRect];
+    [self.interpreter render];
+}
+
+@end

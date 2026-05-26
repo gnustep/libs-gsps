@@ -39,9 +39,12 @@
 @property (nonatomic, assign) BOOL exitFlag;
 @property (nonatomic, strong) NSMutableArray *clipStack;
 @property (nonatomic, strong) NSView *renderView;
+@property (nonatomic, strong) NSMutableArray *renderOperations;
 
 - (void)executeToken:(NSString *)token;
+- (void)interpretString:(NSString *)source;
 - (void)interpretFileAtPath:(NSString *)path;
+- (void)render;
 
 @end
 

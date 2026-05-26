@@ -1,1 +1,1 @@
-("PSGraphicsState", "PSInterpreter", "PSRenderView")
+("PSGraphicsState", "PSInterpreter", "PSName", "PSParser", "PSProcedure", "PSRenderOperation", "PSRenderView")

@@ -41,5 +41,18 @@
 
     return self;
 }
-@end
 
+- (id)copyWithZone:(NSZone *)zone
+{
+  PSGraphicsState *copy = [[[self class] allocWithZone:zone] init];
+  copy.currentPoint = _currentPoint;
+  copy.path = [_path copy];
+  copy.lineWidth = _lineWidth;
+  copy.strokeColor = _strokeColor;
+  copy.fillColor = _fillColor;
+  copy.font = _font;
+  copy.transform = [_transform copy];
+  copy.clipPath = [_clipPath copy];
+  return copy;
+}
+@end

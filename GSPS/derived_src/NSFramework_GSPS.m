@@ -5,6 +5,6 @@
 @end
 @implementation NSFramework_GSPS
 + (NSString *)frameworkVersion { return @"0"; }
-static NSString *allClasses[] = {@"PSGraphicsState", @"PSInterpreter", @"PSRenderView", NULL};
+static NSString *allClasses[] = {@"PSGraphicsState", @"PSInterpreter", @"PSName", @"PSParser", @"PSProcedure", @"PSRenderOperation", @"PSRenderView", NULL};
 + (NSString *const*)frameworkClasses { return allClasses; }
 @end
