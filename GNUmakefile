@@ -5,8 +5,12 @@ ifeq ($(GNUSTEP_MAKEFILES),)
  GNUSTEP_MAKEFILES := $(shell gnustep-config --variable=GNUSTEP_MAKEFILES 2>/dev/null)
 endif
 ifeq ($(GNUSTEP_MAKEFILES),)
- $(error You need to set GNUSTEP_MAKEFILES before compiling!)
-endif
+ ifeq ($(shell uname -s),Darwin)
+  include GNUmakefile.macos
+ else
+  $(error You need to set GNUSTEP_MAKEFILES before compiling!)
+ endif
+else
 
 include $(GNUSTEP_MAKEFILES)/common.make
 
@@ -28,3 +32,4 @@ SUBPROJECTS = \
 -include GNUmakefile.preamble
 include $(GNUSTEP_MAKEFILES)/aggregate.make
 -include GNUmakefile.postamble
+endif

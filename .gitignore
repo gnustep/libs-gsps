@@ -6,3 +6,4 @@ obj
 *.framework
 *.log
 .lock
+build

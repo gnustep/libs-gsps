@@ -26,37 +26,153 @@
 #import <GSPS/PSInterpreter.h>
 #import <GSPS/PSRenderView.h>
 
+@interface GSPSApplicationDelegate : NSObject <NSApplicationDelegate>
+@property (nonatomic, strong) NSWindow *window;
+@property (nonatomic, strong) PSRenderView *renderView;
+@property (nonatomic, strong) PSInterpreter *interpreter;
+@end
+
+@implementation GSPSApplicationDelegate
+
+- (void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+  (void)notification;
+
+  [self installMainMenu];
+  [self createWindowIfNeeded];
+
+  NSArray *arguments = [[NSProcessInfo processInfo] arguments];
+  if ([arguments count] > 1)
+    {
+      [self loadDocumentAtPath:arguments[1]];
+    }
+
+  [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
+{
+  (void)sender;
+  return YES;
+}
+
+- (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename
+{
+  (void)sender;
+  [self createWindowIfNeeded];
+  [self loadDocumentAtPath:filename];
+  return YES;
+}
+
+- (void)openDocument:(id)sender
+{
+  (void)sender;
+
+  NSOpenPanel *panel = [NSOpenPanel openPanel];
+  [panel setCanChooseFiles:YES];
+  [panel setCanChooseDirectories:NO];
+  [panel setAllowsMultipleSelection:NO];
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+  [panel setAllowedFileTypes:@[@"ps", @"eps"]];
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
+  if ([panel runModal] == NSModalResponseOK)
+    {
+      [self createWindowIfNeeded];
+      [self loadDocumentAtPath:[[panel URL] path]];
+    }
+}
+
+- (void)installMainMenu
+{
+  NSString *appName = [[NSProcessInfo processInfo] processName];
+  NSMenu *mainMenu = [[NSMenu alloc] initWithTitle:@""];
+
+  NSMenuItem *appMenuItem = [[NSMenuItem alloc] initWithTitle:@""
+                                                       action:nil
+                                                keyEquivalent:@""];
+  [mainMenu addItem:appMenuItem];
+
+  NSMenu *appMenu = [[NSMenu alloc] initWithTitle:appName];
+  [appMenu addItemWithTitle:[NSString stringWithFormat:@"Quit %@", appName]
+                     action:@selector(terminate:)
+              keyEquivalent:@"q"];
+  [appMenuItem setSubmenu:appMenu];
+
+  NSMenuItem *fileMenuItem = [[NSMenuItem alloc] initWithTitle:@""
+                                                        action:nil
+                                                 keyEquivalent:@""];
+  [mainMenu addItem:fileMenuItem];
+
+  NSMenu *fileMenu = [[NSMenu alloc] initWithTitle:@"File"];
+  NSMenuItem *openItem = [[NSMenuItem alloc] initWithTitle:@"Open..."
+                                                    action:@selector(openDocument:)
+                                             keyEquivalent:@"o"];
+  [openItem setTarget:self];
+  [fileMenu addItem:openItem];
+  [fileMenu addItem:[NSMenuItem separatorItem]];
+  [fileMenu addItemWithTitle:@"Close"
+                      action:@selector(performClose:)
+               keyEquivalent:@"w"];
+  [fileMenuItem setSubmenu:fileMenu];
+
+  [NSApp setMainMenu:mainMenu];
+}
+
+- (void)createWindowIfNeeded
+{
+  if (_window != nil)
+    {
+      [_window makeKeyAndOrderFront:nil];
+      return;
+    }
+
+  NSRect frame = NSMakeRect(0, 0, 640, 640);
+  _window = [[NSWindow alloc] initWithContentRect:frame
+                                        styleMask:(NSWindowStyleMaskTitled |
+                                                   NSWindowStyleMaskClosable |
+                                                   NSWindowStyleMaskResizable |
+                                                   NSWindowStyleMaskMiniaturizable)
+                                          backing:NSBackingStoreBuffered
+                                            defer:NO];
+  [_window setTitle:@"gsps"];
+  [_window center];
+
+  _renderView = [[PSRenderView alloc] initWithFrame:frame];
+  [_renderView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+  [_window setContentView:_renderView];
+  [_window makeKeyAndOrderFront:nil];
+}
+
+- (void)loadDocumentAtPath:(NSString *)path
+{
+  _interpreter = [[PSInterpreter alloc] init];
+  _renderView.interpreter = _interpreter;
+  _interpreter.renderView = _renderView;
+
+  [_interpreter interpretFileAtPath:path];
+  [_window setTitle:[path lastPathComponent]];
+  [_renderView setNeedsDisplay:YES];
+}
+
+@end
+
 int main(int argc, const char * argv[])
 {
+  (void)argc;
+  (void)argv;
+
     @autoreleasepool
       {
-        if (argc < 2)
-	  {
-            puts("Usage: gsps <path-to-ps-file>\n");
-            return 1;
-	  }
-	else
-	  {
-	    NSApplication *app = [NSApplication sharedApplication];
-	    NSRect frame = NSMakeRect(0, 0, 400, 400);
-	    NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-							   styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-							     backing:NSBackingStoreBuffered
-							       defer:NO];
-	    
-	    
-	    NSString *filePath = [NSString stringWithUTF8String:argv[1]];
-	    PSInterpreter *interpreter = [[PSInterpreter alloc] init];
-	    PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
-	    view.interpreter = interpreter;
-	    interpreter.renderView = view;
-	    
-	    [interpreter interpretFileAtPath:filePath];
-
-	    [window setContentView:view];
-	    [window makeKeyAndOrderFront:nil];
-	    [app run];
-	  }
+        NSApplication *app = [NSApplication sharedApplication];
+        GSPSApplicationDelegate *delegate = [[GSPSApplicationDelegate alloc] init];
+        [app setDelegate:delegate];
+        [app run];
       }
     
     return 0;

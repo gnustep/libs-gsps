@@ -1,0 +1,41 @@
+APP_NAME = gsps
+BUILD_DIR = build/macos
+APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
+CONTENTS_DIR = $(APP_BUNDLE)/Contents
+MACOS_DIR = $(CONTENTS_DIR)/MacOS
+RESOURCES_DIR = $(CONTENTS_DIR)/Resources
+
+OBJC_SOURCES = \
+	GSPS/PSGraphicsState.m \
+	GSPS/PSInterpreter.m \
+	GSPS/PSRenderView.m \
+	Applications/gsps/gsps_main.m
+
+OBJC_OBJECTS = $(patsubst %.m,$(BUILD_DIR)/%.o,$(OBJC_SOURCES))
+
+CC = clang
+CPPFLAGS += -I.
+OBJCFLAGS += -fobjc-arc -Wall -Wextra
+LDFLAGS += -framework Foundation -framework AppKit
+
+.PHONY: all clean run
+
+all: $(APP_BUNDLE)
+
+$(APP_BUNDLE): $(MACOS_DIR)/$(APP_NAME) Applications/gsps/Info.plist
+	@mkdir -p $(RESOURCES_DIR)
+	cp Applications/gsps/Info.plist $(CONTENTS_DIR)/Info.plist
+
+$(MACOS_DIR)/$(APP_NAME): $(OBJC_OBJECTS)
+	@mkdir -p $(@D)
+	$(CC) $(OBJC_OBJECTS) $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/%.o: %.m
+	@mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) $(OBJCFLAGS) -c $< -o $@
+
+run: $(APP_BUNDLE)
+	open $(APP_BUNDLE)
+
+clean:
+	rm -rf $(BUILD_DIR)

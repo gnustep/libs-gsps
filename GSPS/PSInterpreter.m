@@ -17,6 +17,18 @@
 #include <ctype.h>
 #include <math.h>
 
+#if defined(__APPLE__) && defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+#define GSPS_EVEN_ODD_WINDING_RULE NSWindingRuleEvenOdd
+#else
+#define GSPS_EVEN_ODD_WINDING_RULE NSEvenOddWindingRule
+#endif
+
+#if defined(__APPLE__) && defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= 101200
+#define GSPS_COMPOSITING_SOURCE_OVER NSCompositingOperationSourceOver
+#else
+#define GSPS_COMPOSITING_SOURCE_OVER NSCompositeSourceOver
+#endif
+
 @interface PSName : NSObject <NSCopying>
 @property (nonatomic, copy) NSString *value;
 @property (nonatomic) BOOL literal;
@@ -75,6 +87,7 @@
 @property (nonatomic) NSPoint point;
 @property (nonatomic) NSRect rect;
 @property (nonatomic, strong) NSImage *image;
+@property (nonatomic, strong) NSAffineTransform *transform;
 - (void)render;
 @end
 
@@ -101,7 +114,7 @@
   else if ([_type isEqualToString:@"eofill"])
     {
       [_fillColor setFill];
-      [_path setWindingRule:NSEvenOddWindingRule];
+      [_path setWindingRule:GSPS_EVEN_ODD_WINDING_RULE];
       [_path fill];
     }
   else if ([_type isEqualToString:@"rectfill"])
@@ -122,11 +135,30 @@
         NSFontAttributeName: _font ?: [NSFont systemFontOfSize:12],
         NSForegroundColorAttributeName: _strokeColor ?: [NSColor blackColor]
       };
-      [_text drawAtPoint:_point withAttributes:attrs];
+      if (_transform != nil)
+        {
+          NSAffineTransformStruct s = [_transform transformStruct];
+          s.tX = 0.0;
+          s.tY = 0.0;
+
+          NSAffineTransform *textTransform = [NSAffineTransform transform];
+          [textTransform translateXBy:_point.x yBy:_point.y];
+
+          NSAffineTransform *linearTransform = [NSAffineTransform transform];
+          [linearTransform setTransformStruct:s];
+          [textTransform appendTransform:linearTransform];
+          [textTransform concat];
+
+          [_text drawAtPoint:NSZeroPoint withAttributes:attrs];
+        }
+      else
+        {
+          [_text drawAtPoint:_point withAttributes:attrs];
+        }
     }
   else if ([_type isEqualToString:@"image"])
     {
-      [_image drawAtPoint:_point fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
+      [_image drawAtPoint:_point fromRect:NSZeroRect operation:GSPS_COMPOSITING_SOURCE_OVER fraction:1.0];
     }
   [NSGraphicsContext restoreGraphicsState];
 }
@@ -581,6 +613,13 @@
 - (NSPoint)transformPointX:(NSNumber *)x y:(NSNumber *)y
 {
   return [_graphicsState.transform transformPoint:NSMakePoint([x doubleValue], [y doubleValue])];
+}
+
+- (NSPoint)transformDistanceX:(CGFloat)x y:(CGFloat)y
+{
+  NSPoint origin = [_graphicsState.transform transformPoint:NSZeroPoint];
+  NSPoint point = [_graphicsState.transform transformPoint:NSMakePoint(x, y)];
+  return NSMakePoint(point.x - origin.x, point.y - origin.y);
 }
 
 - (void)addPaintOperation:(NSString *)type path:(NSBezierPath *)path
@@ -1161,10 +1200,19 @@
       _graphicsState.strokeColor = color;
       _graphicsState.fillColor = color;
     }
+  else if ([token isEqualToString:@"sethsbcolor"])
+    {
+      CGFloat b = [[self popNumber] doubleValue];
+      CGFloat s = [[self popNumber] doubleValue];
+      CGFloat h = [[self popNumber] doubleValue];
+      NSColor *color = [NSColor colorWithCalibratedHue:h saturation:s brightness:b alpha:1.0];
+      _graphicsState.strokeColor = color;
+      _graphicsState.fillColor = color;
+    }
   else if ([token isEqualToString:@"clip"] || [token isEqualToString:@"eoclip"])
     {
       _graphicsState.clipPath = [_graphicsState.path copy];
-      if ([token isEqualToString:@"eoclip"]) [_graphicsState.clipPath setWindingRule:NSEvenOddWindingRule];
+      if ([token isEqualToString:@"eoclip"]) [_graphicsState.clipPath setWindingRule:GSPS_EVEN_ODD_WINDING_RULE];
     }
   else if ([token isEqualToString:@"initclip"])
     {
@@ -1270,9 +1318,12 @@
       operation.font = _graphicsState.font;
       operation.strokeColor = _graphicsState.strokeColor;
       operation.clipPath = [_graphicsState.clipPath copy];
+      operation.transform = [_graphicsState.transform copy];
       [_renderOperations addObject:operation];
       NSSize size = [text sizeWithAttributes:@{ NSFontAttributeName: _graphicsState.font }];
-      _graphicsState.currentPoint = NSMakePoint(_graphicsState.currentPoint.x + size.width, _graphicsState.currentPoint.y);
+      NSPoint advance = [self transformDistanceX:size.width y:0.0];
+      _graphicsState.currentPoint = NSMakePoint(_graphicsState.currentPoint.x + advance.x,
+                                                _graphicsState.currentPoint.y + advance.y);
     }
   else if ([token isEqualToString:@"image"] || [token isEqualToString:@"imagegray"] || [token isEqualToString:@"imagemask"])
     {
